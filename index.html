@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>First Flush — Happy Valley, Darjeeling (1854)</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,700;1,400;1,700&family=Crimson+Pro:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./style.css" />
+
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+      }
+    }
+  </script>
+</head>
+<body class="cinema-mode is-loading">
+
+  <!-- WebGL Viewport -->
+  <div id="canvas-container" aria-label="Darjeeling Happy Valley 3D World"></div>
+
+  <!-- Atmospheric Overlays -->
+  <div class="film-grain" aria-hidden="true"></div>
+  <div class="vignette" aria-hidden="true"></div>
+  <div class="letterbox top" aria-hidden="true"></div>
+  <div class="letterbox bottom" aria-hidden="true"></div>
+
+  <!-- Cartographic GPS Peak Markers (Populated by world.js, shown in Rest & Gaze mode) -->
+  <div id="peak-labels" aria-hidden="true"></div>
+
+  <!-- Procedural World Loading Veil -->
+  <div id="loading-veil">
+    <div class="loader-inner">
+      <div class="loader-leaf"></div>
+      <div class="eyebrow">Darjeeling · West Bengal · 2,100m</div>
+      <div class="loader-status" id="loader-status">Sculpting Kanchenjunga &amp; Terraces…</div>
+    </div>
+  </div>
+
+  <!-- Title Screen Overlay (Floats over live 3D dawn vista) -->
+  <section id="title-screen">
+    <div class="title-card">
+      <div class="eyebrow">Happy Valley Tea Estate · Est. 1854 · 27°03′08″N 88°15′31″E</div>
+      <h1 class="title">First Flush</h1>
+      <div class="title-rule"><span></span><i>Do Patti, Ek Kali</i><span></span></div>
+      <p class="subtitle">
+        Two leaves and a bud on the steep northern slopes of Darjeeling.<br />
+        Pinch the tender spring flush at dawn beneath the golden snows of Kanchenjunga.
+      </p>
+
+      <div class="title-actions">
+        <button id="start-btn" class="btn-primary">Begin Dawn Shift</button>
+      </div>
+
+      <div class="controls-strip">
+        <div class="ctrl-item"><kbd>WASD</kbd><span>Walk Terraces</span></div>
+        <div class="ctrl-item"><kbd>Hold &amp; Release</kbd><span>Pinch-Snap Node</span></div>
+        <div class="ctrl-item"><kbd>F</kbd><span>Toss to Doko</span></div>
+        <div class="ctrl-item"><kbd>V</kbd><span>1st / 3rd Person</span></div>
+        <div class="ctrl-item"><kbd>R</kbd><span>Gaze &amp; Peak Map</span></div>
+        <div class="ctrl-item"><kbd>T</kbd><span>Shift Light</span></div>
+        <div class="ctrl-item"><kbd>E</kbd><span>Weigh at Tola</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Main Minimalist Editorial HUD -->
+  <main id="hud">
+
+    <!-- Top Left: Location, Live GPS & Atmospheric Time -->
+    <header class="hud-top-left hud-fade">
+      <div class="location-tag" id="block-name">Happy Valley · North Heritage Block</div>
+      <div class="gps-line" id="gps-readout">27.0521° N, 88.2587° E · 2,100 m</div>
+      <div class="time-readout" id="time-readout">05:40 AM · Kanchenjunga Alpenglow</div>
+    </header>
+
+    <!-- Top Center: Sliding Horizon Compass + Kanchenjunga Bearing Marker -->
+    <div class="compass-shell hud-fade" aria-label="Compass">
+      <div class="compass-caret"></div>
+      <div class="compass-viewport">
+        <div class="compass-tape" id="compass-tape">
+          <span>W</span><span>·</span><span>NW</span><span>·</span>
+          <span class="compass-peak-mark">▲ K</span>
+          <span class="compass-north">N</span><span>·</span><span>NE</span><span>·</span><span>E</span>
+        </div>
+      </div>
+      <div class="compass-bearing" id="compass-bearing">351° NNW</div>
+    </div>
+
+    <!-- Top Right: Flush Purity, Doko Load & Flow Rhythm -->
+    <aside class="hud-top-right hud-fade">
+      <div class="stat-card">
+        <div class="stat-label">Flush Purity</div>
+        <div class="stat-value" id="quality-val">100%</div>
+        <div class="stat-sub" id="grade-val">FTGFOP1</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Doko Load</div>
+        <div class="stat-value" id="weight-val">0.00 kg</div>
+        <div class="stat-sub" id="streak-val">Rhythm ×0</div>
+      </div>
+    </aside>
+
+    <!-- Bottom Left: Physical Slope Fatigue, Doko Capacity & Cupped Handful -->
+    <section class="hud-bottom-left hud-fade">
+      <div class="meter-block">
+        <div class="bar-header">
+          <span>Breath &amp; Footing</span>
+          <span id="slope-status">Steady · 0°</span>
+        </div>
+        <div class="bar-track"><div class="bar-fill stamina-fill" id="stamina-bar"></div></div>
+      </div>
+
+      <div class="meter-block">
+        <div class="bar-header">
+          <span>Bamboo Doko</span>
+          <span id="doko-pct">0%</span>
+        </div>
+        <div class="bar-track"><div class="bar-fill doko-fill" id="doko-bar"></div></div>
+      </div>
+
+      <div class="handful-row">
+        <span class="handful-label">Cupped Handful <em id="handful-hint">(Auto-toss at 5)</em></span>
+        <div class="handful-pips" id="handful-pips">
+          <div class="pip"></div>
+          <div class="pip"></div>
+          <div class="pip"></div>
+          <div class="pip"></div>
+          <div class="pip"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Bottom Right: Contextual Controls Legend (Toggle with H) -->
+    <aside class="hud-bottom-right hud-fade" id="controls-legend">
+      <div><b>Hold &amp; Release Click</b> inside gold ring to snap</div>
+      <div><b>V</b> 1st / 3rd Person · <b>F</b> Toss Handful · <b>T</b> Sunlight</div>
+      <div><b>R</b> Rest &amp; Peak Map · <b>H</b> Hide Hints · <b>Esc</b> Settings</div>
+    </aside>
+
+    <!-- Center Botanical Pinch-Node Reticle -->
+    <div id="reticle" class="hud-fade">
+      <div class="reticle-wrap">
+        <svg id="snap-svg" viewBox="0 0 76 76" aria-hidden="true">
+          <!-- Outer soft guide -->
+          <circle class="guide-ring" cx="38" cy="38" r="33"></circle>
+          <!-- Golden Node Sweet-Spot Band -->
+          <circle class="sweet-zone" cx="38" cy="38" r="18"></circle>
+          <!-- Live Contracting Pinch Ring -->
+          <circle id="pinch-circle" class="pinch-ring" cx="38" cy="38" r="33"></circle>
+        </svg>
+        <div class="reticle-dot"></div>
+      </div>
+      <div id="reticle-label">Fine Flush · Two Leaves &amp; a Bud</div>
+    </div>
+
+  </main>
+
+  <!-- Floating Tactile Feedback, Prompts & Poetic Toasts -->
+  <div id="snap-feedback" aria-live="polite">Crisp Node Snap!</div>
+  <div id="lock-reminder">Click scene to look freely · Right-drag also rotates camera</div>
+  <div id="prompt-banner"></div>
+  <div id="poetic-toast" aria-live="polite"></div>
+  <div id="rest-hint">Gazing north across the Rangeet Valley toward Kanchenjunga — press R to resume</div>
+
+  <!-- Pause / Settings Overlay (Esc or Pause) -->
+  <div id="settings-modal" role="dialog" aria-modal="true" aria-label="Settings">
+    <div class="modal-card settings-card">
+      <div class="eyebrow">Happy Valley · Field Settings</div>
+      <h2>Shift Paused</h2>
+      <div class="settings-list">
+        <label class="setting-row">
+          <span>Look Sensitivity</span>
+          <input id="opt-sens" type="range" min="0.5" max="2.2" step="0.1" value="1.0" />
+        </label>
+        <label class="setting-row">
+          <span>Ambient Sound Volume</span>
+          <input id="opt-vol" type="range" min="0" max="1" step="0.05" value="0.85" />
+        </label>
+        <label class="setting-row toggle-row">
+          <span>Cinematic Bloom Glow</span>
+          <input id="opt-bloom" type="checkbox" checked />
+        </label>
+        <label class="setting-row toggle-row">
+          <span>Show HUD Control Hints</span>
+          <input id="opt-hints" type="checkbox" checked />
+        </label>
+      </div>
+      <div class="modal-actions">
+        <button id="resume-btn" class="btn-primary">Resume Shift</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tola Ghar Harvest Ledger Modal -->
+  <div id="weigh-modal" role="dialog" aria-modal="true" aria-label="Harvest Weigh-In">
+    <div class="modal-card ledger-card">
+      <div class="ledger-stamp" id="modal-stamp">FTGFOP1</div>
+      <div class="eyebrow">Happy Valley Tola Ghar · Brass Balance Ledger</div>
+      <h2>Morning Harvest Weighed</h2>
+      <div class="modal-grade" id="modal-grade">FTGFOP1 · Finest Tippy Golden Flowery Orange Pekoe</div>
+
+      <div class="modal-grid">
+        <div class="metric-cell">
+          <div class="modal-metric-val" id="modal-weight">0.00 kg</div>
+          <div class="modal-metric-lbl">Fresh Leaf</div>
+        </div>
+        <div class="metric-cell">
+          <div class="modal-metric-val" id="modal-purity">100%</div>
+          <div class="modal-metric-lbl">Fine Purity</div>
+        </div>
+        <div class="metric-cell">
+          <div class="modal-metric-val" id="modal-crisp">0</div>
+          <div class="modal-metric-lbl">Crisp Snaps</div>
+        </div>
+        <div class="metric-cell">
+          <div class="modal-metric-val" id="modal-shoots">0</div>
+          <div class="modal-metric-lbl">Total Shoots</div>
+        </div>
+      </div>
+
+      <div class="appraisal-box">
+        <div class="appraisal-header">
+          <span class="appraisal-title">1854 Tea Master Ledger Entry</span>
+          <span class="appraisal-badge" id="appraisal-model-badge">Powered by Gemini 4 Neon</span>
+        </div>
+        <p class="modal-note" id="modal-note">
+          From 150-year-old heritage China-variety bushes at 2,100 metres, fresh shoots climb uphill to the 1854 withering lofts while mist rises from the Little Rangeet gorge.
+        </p>
+      </div>
+
+      <div class="modal-actions">
+        <button id="continue-shift-btn" class="btn-primary">Begin Next Flush Round</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="./js/main.js"></script>
+</body>
+</html>
